@@ -6,7 +6,7 @@
 
 <!--    配置自动扫描包-->
 <!--    如果是普通的java项目 该beans文件放在src文件下即可,如果是maven项目,beans.xml放在src/resources下-->
-    <context:component-scan base-package="com.cus.spring.component"/>
+<!--    <context:component-scan base-package="com.cus.spring.component"/>-->
 <!--    配置后置处理器-->
-    <bean id="myBeanProcessor" class="com.cus.spring.process.MyBeanProcessor"  />
+<!--    <bean id="myBeanProcessor" class="com.cus.spring.process.MyBeanProcessor"  />-->
 </beans>

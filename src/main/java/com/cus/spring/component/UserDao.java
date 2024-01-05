@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
  * @author liushuo
  * @version 1.0
  */
-@Component //可以以使用@Repository
+@Component(value = "Haha") //可以以使用@Repository
 
 public class UserDao {
     public void hi() {
