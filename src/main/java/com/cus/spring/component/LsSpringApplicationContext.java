@@ -61,7 +61,7 @@ public class LsSpringApplicationContext {
                            String id = component.value();
                            if (!"".endsWith(id)) {
                              className = id;
-                               System.out.println(className + 111);
+                               System.out.println(className);
                            }
                        }
                         //表示有注解，注入到容器中
