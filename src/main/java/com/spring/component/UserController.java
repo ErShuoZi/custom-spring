@@ -8,5 +8,5 @@ import org.springframework.stereotype.Controller;
 @Component
 public class UserController {
     @Autowired
-    private UserService userService1;
+    private UserService userService;
 }

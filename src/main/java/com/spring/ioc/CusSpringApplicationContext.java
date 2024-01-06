@@ -4,6 +4,7 @@ import com.cus.spring.annotation.ComponentScan;
 import com.spring.annotation.Autowired;
 import com.spring.annotation.Component;
 import com.spring.annotation.Scope;
+import com.spring.processor.InitializingBean;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CusSpringApplicationContext {
@@ -23,8 +25,23 @@ public class CusSpringApplicationContext {
     //singletonObjects -> singletonObject 单例对象
     private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>();
 
-    public CusSpringApplicationContext(Class configClass) {
+    public CusSpringApplicationContext(Class configClass) throws Exception {
         beanDefinitionMapScan(configClass);
+        //初始化单例池
+        Enumeration<String> keys = beanDefinitionMap.keys();
+        while (keys.hasMoreElements()) {
+            //得到beanName
+            String beanName = keys.nextElement();
+            //通过beanName 得到对应的beanDefinition对象
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+            //判断该bean是singleton还是prototype
+            if ("singleton".equalsIgnoreCase(beanDefinition.getScope())) {
+                //将该bean实例放入到singletonObjects 集合
+                Object bean = createBean(beanDefinition);
+                singletonObjects.put(beanName, bean);
+
+            }
+        }
     }
 
 
@@ -90,16 +107,10 @@ public class CusSpringApplicationContext {
                                 //设置scopeValue
                                 beanDefinition.setScope(scopeValue);
                             } else {
-                                //没有显式配置scope
                                 beanDefinition.setScope("singleton");
-                                //单例 singleton
-                                Object instance = aClass.newInstance();
-                                singletonObjects.put(StringUtils.uncapitalize(className), instance);
                             }
                             //将beanDefinition对象装在 map中
                             beanDefinitionMap.put(StringUtils.uncapitalize(className), beanDefinition);
-
-
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -112,12 +123,7 @@ public class CusSpringApplicationContext {
 
     public Object createBean(BeanDefinition beanDefinition) throws Exception {
         Class clazz = beanDefinition.getClazz();
-        //String className = clazz.getName();
-        //Class<?> aClass = Class.forName(className);
-        //BeanDefinition instance = (BeanDefinition) aClass.newInstance();
-
-        //如果有参数的话，也可以拿到构造器创建实例
-        Object instance =  clazz.getDeclaredConstructor().newInstance();
+        Object instance = clazz.getDeclaredConstructor().newInstance();
         //加入依赖注入逻辑
         //得到要创建实例身上的所有字段
         Field[] WillCreateNewInstanceAllFields = instance.getClass().getDeclaredFields();
@@ -127,34 +133,34 @@ public class CusSpringApplicationContext {
                 Autowired autowired = willCreateNewInstanceAllField.getDeclaredAnnotation(Autowired.class);
                 boolean required = autowired.required();
                 if (required) {
-                    try {
-                        String FieldName = willCreateNewInstanceAllField.getName();
-                        //得到了要装配属性的name后，使用该name 调用getBean方法 得到bean 进行赋值
-                        Object bean = this.getBean(FieldName);
-                        //通过该字段的set方法设置bean
-                        //由于该字段被private修饰，需要对该字段进行爆破
-                      if (bean == null) {
-                          throw new RuntimeException("Bean not found for field: " + FieldName);
-                      }
-                        willCreateNewInstanceAllField.setAccessible(true);
-                        willCreateNewInstanceAllField.set(instance,bean);
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to wire field: " + willCreateNewInstanceAllField.getName(), e);
-                    }
-                }else {
+
+                    String FieldName = willCreateNewInstanceAllField.getName();
+                    //得到了要装配属性的name后，使用该name 调用getBean方法 得到bean 进行赋值
+                    Object bean = this.getBean(FieldName);
+                    //通过该字段的set方法设置bean
+                    //由于该字段被private修饰，需要对该字段进行爆破
+
+                    willCreateNewInstanceAllField.setAccessible(true);
+                    willCreateNewInstanceAllField.set(instance, bean);
+
+                } else {
                     String FieldName = willCreateNewInstanceAllField.getName();
                     //得到了要装配属性的name后，使用该name 调用getBean方法 得到bean 进行赋值
                     Object bean = this.getBean(FieldName);
                     if (bean != null) {
                         willCreateNewInstanceAllField.setAccessible(true);
-                        willCreateNewInstanceAllField.set(instance,bean);
+                        willCreateNewInstanceAllField.set(instance, bean);
                     }
                 }
 
             }
         }
-
-
+        //进行初始化
+        //instanceof 判读instance的运行类型是否等于InitializingBean 或者是InitializingBean 的子类
+        if (instance instanceof InitializingBean) {
+           //面向接口
+            ((InitializingBean)instance).afterPropertiesSet();
+        }
         return instance;
     }
 
