@@ -13,6 +13,6 @@ public class UserDao implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        System.out.println("UserDao 初始化方法执行");
+        //System.out.println("UserDao 初始化方法执行");
     }
 }

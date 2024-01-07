@@ -22,6 +22,6 @@ public class UserService implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        System.out.println("userService初始化方法被执行");
+        //System.out.println("userService初始化方法被执行");
     }
 }
